@@ -220,6 +220,31 @@ void gfx_window_toggle_fullscreen(void)
 
     gfx_screen_dirty();
 }
+
+/// @brief 
+void gfx_reload_hd_canvas(void)
+{
+    if (strlen(last_hd_path) == 0) return;
+    if (hd_canvas != NULL) {
+        SDL_DestroyTexture(hd_canvas);
+        hd_canvas = NULL;
+    }
+    SDL_Surface* hd_surface = IMG_Load(last_hd_path);
+    if (hd_surface != NULL) {
+        hd_canvas = SDL_CreateTexture(gfx.renderer, SDL_PIXELFORMAT_RGBA8888,
+            SDL_TEXTUREACCESS_TARGET, 1920, 1200);
+        SDL_SetTextureBlendMode(hd_canvas, SDL_BLENDMODE_BLEND);
+        SDL_Texture* temp_tex = SDL_CreateTextureFromSurface(gfx.renderer, hd_surface);
+        SDL_FreeSurface(hd_surface);
+        SDL_SetRenderTarget(gfx.renderer, hd_canvas);
+        SDL_RenderClear(gfx.renderer);
+        SDL_RenderCopy(gfx.renderer, temp_tex, NULL, &last_hd_dest_rect);
+        SDL_SetRenderTarget(gfx.renderer, NULL);
+        SDL_DestroyTexture(temp_tex);
+    }
+}
+
+/// @param  
 void gfx_window_increase_integer_size(void)
 {
 	int w, h;
