@@ -49,7 +49,8 @@ struct gfx {
 	SDL_Window *window;
 	SDL_Renderer *renderer;
 	uint32_t window_id;
-
+    int window_w;    // ← ADD THIS
+    int window_h;    // ← ADD THIS
 	struct gfx_surface surface[GFX_NR_SURFACES];
 
 	// index of the currently displayed surface

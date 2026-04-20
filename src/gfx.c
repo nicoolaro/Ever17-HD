@@ -179,13 +179,29 @@ SDL_Surface *gfx_get_overlay(void)
 	return s;
 }
 
+//fixed issue with minimized 1cm screen andblack screen on f11
 void gfx_window_toggle_fullscreen(void)
 {
-	uint32_t flag = SDL_WINDOW_FULLSCREEN_DESKTOP;
-	bool fullscreen = SDL_GetWindowFlags(gfx.window) & flag;
-	SDL_SetWindowFullscreen(gfx.window, fullscreen ? 0 : flag);
-}
+    uint32_t flag = SDL_WINDOW_FULLSCREEN_DESKTOP;
+    bool fullscreen = SDL_GetWindowFlags(gfx.window) & flag;
 
+    // Destroy hd_canvas BEFORE switching — renderer reset kills it anyway
+    if (hd_canvas != NULL) {
+        SDL_DestroyTexture(hd_canvas);
+        hd_canvas = NULL;
+    }
+
+    if (fullscreen) {
+        SDL_SetWindowFullscreen(gfx.window, 0);
+        SDL_SetWindowSize(gfx.window, gfx.window_w, gfx.window_h);
+        SDL_SetWindowPosition(gfx.window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    } else {
+        SDL_GetWindowSize(gfx.window, &gfx.window_w, &gfx.window_h);
+        SDL_SetWindowFullscreen(gfx.window, flag);
+    }
+
+    gfx_screen_dirty();
+}
 void gfx_window_increase_integer_size(void)
 {
 	int w, h;
@@ -201,7 +217,6 @@ void gfx_window_increase_integer_size(void)
 
 	SDL_SetWindowSize(gfx.window, target_w, target_h);
 }
-
 void gfx_window_decrease_integer_size(void)
 {
 	int w, h;
