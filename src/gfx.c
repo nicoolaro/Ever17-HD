@@ -432,38 +432,43 @@ void gfx_init(const char *name)
 
 void gfx_update(void)
 {
-struct gfx_surface *screen = &gfx.surface[gfx.screen];
-if (gfx.hidden || !screen->dirty)
-return;
-SDL_Rect dst_r = screen->damaged;
-dst_r.y -= screen->src.y;
-SDL_CALL(SDL_BlitSurface, screen->s, &screen->damaged, gfx.display, &dst_r);
-if (gfx.overlay && gfx_overlay_enabled)
-    SDL_CALL(SDL_BlitSurface, gfx.overlay, &screen->damaged, gfx.display, &screen->damaged);
-if (screen->scaled) {
-    SDL_Rect src = screen->src;
-    SDL_Rect dst = screen->dst;
-    SDL_CALL(SDL_FillRect, gfx.scaled_display, NULL, 0);
-    SDL_CALL(SDL_BlitScaled, gfx.display, &src, gfx.scaled_display, &dst);
-}
+    struct gfx_surface *screen = &gfx.surface[gfx.screen];
+    if (gfx.hidden || !screen->dirty)
+        return;
 
-SDL_CALL(SDL_RenderClear, gfx.renderer);
+    SDL_Rect dst_r = screen->damaged;
+    dst_r.y -= screen->src.y;
+    SDL_CALL(SDL_BlitSurface, screen->s, &screen->damaged, gfx.display, &dst_r);
+    if (gfx.overlay && gfx_overlay_enabled)
+        SDL_CALL(SDL_BlitSurface, gfx.overlay, &screen->damaged, gfx.display, &screen->damaged);
+    if (screen->scaled) {
+        SDL_Rect src = screen->src;
+        SDL_Rect dst = screen->dst;
+        SDL_CALL(SDL_FillRect, gfx.scaled_display, NULL, 0);
+        SDL_CALL(SDL_BlitScaled, gfx.display, &src, gfx.scaled_display, &dst);
+    }
 
-if (hd_canvas != NULL) {
-    SDL_RenderSetLogicalSize(gfx.renderer, 0, 0);
-    SDL_CALL(SDL_RenderCopy, gfx.renderer, hd_canvas, NULL, NULL);
-    SDL_RenderSetLogicalSize(gfx.renderer, 640, 400);
-}
-SDL_Surface* draw_surface = screen->scaled ? gfx.scaled_display : gfx.display;
+    SDL_CALL(SDL_RenderClear, gfx.renderer);
 
-SDL_SetColorKey(draw_surface, SDL_TRUE, SDL_MapRGB(draw_surface->format, 0, 0, 0));
+    // HD layer: bypass logical scaling so it fills the window natively
+    if (hd_canvas != NULL) {
+        SDL_RenderSetLogicalSize(gfx.renderer, 0, 0);
+        int ww, wh;
+        SDL_GetWindowSize(gfx.window, &ww, &wh);
+        SDL_Rect hd_dst = { 0, 0, ww, wh };
+        SDL_RenderCopy(gfx.renderer, hd_canvas, NULL, &hd_dst);
+        SDL_RenderSetLogicalSize(gfx.renderer, 640, 400);
+    }
 
-SDL_Texture* hd_overlay = SDL_CreateTextureFromSurface(gfx.renderer, draw_surface);
-SDL_CALL(SDL_RenderCopy, gfx.renderer, hd_overlay, NULL, NULL);
-SDL_DestroyTexture(hd_overlay);
+    // SD overlay: renders through logical scaling for correct text/UI coords
+    SDL_Surface *draw_surface = screen->scaled ? gfx.scaled_display : gfx.display;
+    SDL_SetColorKey(draw_surface, SDL_TRUE, SDL_MapRGB(draw_surface->format, 0, 0, 0));
+    SDL_Texture *sd_overlay = SDL_CreateTextureFromSurface(gfx.renderer, draw_surface);
+    SDL_CALL(SDL_RenderCopy, gfx.renderer, sd_overlay, NULL, NULL);
+    SDL_DestroyTexture(sd_overlay);
 
-SDL_RenderPresent(gfx.renderer);
-gfx_clean(gfx.screen);
+    SDL_RenderPresent(gfx.renderer);
+    gfx_clean(gfx.screen);
 }
 void gfx_display_freeze(void)
 {
