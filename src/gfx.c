@@ -187,7 +187,8 @@ void gfx_window_toggle_fullscreen(void)
 {
     uint32_t flag = SDL_WINDOW_FULLSCREEN_DESKTOP;
     bool fullscreen = SDL_GetWindowFlags(gfx.window) & flag;
-
+    printf("[DEBUG] flag=%u fullscreen=%d window_w=%d window_h=%d\n", 
+       flag, fullscreen, gfx.window_w, gfx.window_h);
     if (hd_canvas != NULL) {
         SDL_DestroyTexture(hd_canvas);
         hd_canvas = NULL;
@@ -413,7 +414,9 @@ void gfx_init(const char *name)
 #endif
 //	SDL_CTOR(SDL_CreateWindow, gfx.window, title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1440, 900, SDL_WINDOW_RESIZABLE);
 //    SDL_CTOR(SDL_CreateWindow, gfx.window, title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP);
-    SDL_CTOR(SDL_CreateWindow, gfx.window, title,SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+    SDL_CTOR(SDL_CreateWindow, gfx.window, title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+    gfx.window_w = 1280;
+    gfx.window_h = 720;
 	gfx.window_id = SDL_GetWindowID(gfx.window);
 	SDL_CTOR(SDL_CreateRenderer, gfx.renderer, gfx.window, -1, 0);
 	SDL_CALL(SDL_SetRenderDrawColor, gfx.renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);

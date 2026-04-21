@@ -34,7 +34,13 @@ Stable Fullscreen: Borderless windowed mode for smooth transitions.
 Portable Design: Minimal dependencies, easy to compile on MSYS2/MinGW environments.
 
 ## What's done
-- 
+So to summarize where we are:
+
+✅ HD backgrounds rendering correctly
+✅ F11 fullscreen working
+✅ HD canvas context loss fixed
+🔲 Popup menu transparency
+🔲 Left/right UI zone black borders
 
 ## Next steps
 -

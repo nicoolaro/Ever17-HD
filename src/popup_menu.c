@@ -724,7 +724,7 @@ static void popup_window_init(struct menu_window *w, struct menu *m, int x, int 
 	w->y = y;
 	w->selected = NULL;
 	calc_size(m, &w->width, &w->height, &w->text_x, &w->hotkey_x);
-	SDL_CTOR(SDL_CreateWindow, w->window, "", x, y, w->width, w->height,
+	SDL_CTOR(SDL_CreateWindow, w->window, "", x, y, w->width * 2, w->height * 2,
 			SDL_WINDOW_BORDERLESS
 			| SDL_WINDOW_POPUP_MENU
 			| SDL_WINDOW_SKIP_TASKBAR);
