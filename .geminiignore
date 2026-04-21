@@ -1,0 +1,9 @@
+.git/
+node_modules/
+**/assets/
+**/hd_assets
+**/upscaled/
+*.png
+*.jpg
+*.bmp
+*.bin

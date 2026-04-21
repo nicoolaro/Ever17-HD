@@ -218,7 +218,7 @@ void gfx_reload_hd_canvas(void)
         hd_canvas = NULL;
     }
     hd_canvas = SDL_CreateTexture(gfx.renderer, SDL_PIXELFORMAT_RGBA8888,
-        SDL_TEXTUREACCESS_TARGET, 1920, 1200);
+      SDL_TEXTUREACCESS_TARGET, 1280, 800);
     SDL_SetTextureBlendMode(hd_canvas, SDL_BLENDMODE_BLEND);
     SDL_SetRenderTarget(gfx.renderer, hd_canvas);
     SDL_SetRenderDrawColor(gfx.renderer, 0, 0, 0, 255);
@@ -450,9 +450,10 @@ if (screen->scaled) {
 SDL_CALL(SDL_RenderClear, gfx.renderer);
 
 if (hd_canvas != NULL) {
+    SDL_RenderSetLogicalSize(gfx.renderer, 0, 0);
     SDL_CALL(SDL_RenderCopy, gfx.renderer, hd_canvas, NULL, NULL);
+    SDL_RenderSetLogicalSize(gfx.renderer, 640, 400);
 }
-
 SDL_Surface* draw_surface = screen->scaled ? gfx.scaled_display : gfx.display;
 
 SDL_SetColorKey(draw_surface, SDL_TRUE, SDL_MapRGB(draw_surface->format, 0, 0, 0));
@@ -1424,6 +1425,7 @@ void gfx_draw_cg(unsigned i, struct cg *cg)
 			cg->metrics.w, cg->metrics.h);
 			
 // --- HD OVERRIDE START ---
+printf("[HD] metrics x=%d y=%d w=%d h=%d\n", cg->metrics.x, cg->metrics.y, cg->metrics.w, cg->metrics.h);
 if (strlen(current_loading_filename) > 0) {
     char base_name[256];
     strncpy(base_name, current_loading_filename, 255);
@@ -1438,10 +1440,10 @@ if (strlen(current_loading_filename) > 0) {
         SDL_Surface *hd_surface = IMG_Load(hd_path);
         if (hd_surface != NULL) {
             SDL_Rect dest_rect = {
-                cg->metrics.x * 3,
-                cg->metrics.y * 3,
-                cg->metrics.w * 3,
-                cg->metrics.h * 3
+                cg->metrics.x * 2,
+                cg->metrics.y * 2,
+                cg->metrics.w * 2,
+                cg->metrics.h * 2
             };
 
             // store layer for reload on window events
@@ -1453,7 +1455,7 @@ if (strlen(current_loading_filename) > 0) {
 
             if (hd_canvas == NULL) {
                 hd_canvas = SDL_CreateTexture(gfx.renderer, SDL_PIXELFORMAT_RGBA8888,
-                    SDL_TEXTUREACCESS_TARGET, 1920, 1200);
+                    SDL_TEXTUREACCESS_TARGET, 1280, 800);
                 SDL_SetTextureBlendMode(hd_canvas, SDL_BLENDMODE_BLEND);
             }
 
