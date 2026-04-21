@@ -183,7 +183,7 @@ SDL_Surface *gfx_get_overlay(void)
 }
 
 //fixed issue with minimized 1cm screen andblack screen on f11
-vvoid gfx_window_toggle_fullscreen(void)
+void gfx_window_toggle_fullscreen(void)
 {
     uint32_t flag = SDL_WINDOW_FULLSCREEN_DESKTOP;
     bool fullscreen = SDL_GetWindowFlags(gfx.window) & flag;
