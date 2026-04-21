@@ -33,12 +33,20 @@
 #include <unistd.h>
 #include <stdbool.h>
 // --- HIGH RES OVERRIDE BRIDGE ---
-
 char current_loading_filename[256] = "";
-SDL_Texture* hd_canvas = NULL;
-char last_hd_path[512] = "";
-SDL_Rect last_hd_dest_rect = {0};  // ← ADD THIS LINE HERE
-void wipe_hd_canvas(void) {
+SDL_Texture *hd_canvas = NULL;
+
+#define HD_LAYER_MAX 16
+struct hd_layer {
+    char path[512];
+    SDL_Rect dest_rect;
+};
+static struct hd_layer hd_layers[HD_LAYER_MAX];
+static int hd_layer_count = 0;
+
+void wipe_hd_canvas(void)
+{
+    hd_layer_count = 0;
     if (hd_canvas != NULL) {
         SDL_SetRenderTarget(gfx.renderer, hd_canvas);
         SDL_SetRenderDrawColor(gfx.renderer, 0, 0, 0, 255);
@@ -182,17 +190,11 @@ SDL_Surface *gfx_get_overlay(void)
 	return s;
 }
 
-//fixed issue with minimized 1cm screen andblack screen on f11
+//fixed issue with minimized 1cm screen andblack screen on f11,cleaned up, debug print removed
 void gfx_window_toggle_fullscreen(void)
 {
     uint32_t flag = SDL_WINDOW_FULLSCREEN_DESKTOP;
     bool fullscreen = SDL_GetWindowFlags(gfx.window) & flag;
-    printf("[DEBUG] flag=%u fullscreen=%d window_w=%d window_h=%d\n", 
-       flag, fullscreen, gfx.window_w, gfx.window_h);
-    if (hd_canvas != NULL) {
-        SDL_DestroyTexture(hd_canvas);
-        hd_canvas = NULL;
-    }
 
     if (fullscreen) {
         SDL_SetWindowFullscreen(gfx.window, 0);
@@ -207,30 +209,33 @@ void gfx_window_toggle_fullscreen(void)
     gfx_screen_dirty();
 }
 
-/// @brief 
+/// now loops through all layers and redraws them all
 void gfx_reload_hd_canvas(void)
 {
-    if (strlen(last_hd_path) == 0) return;
+    if (hd_layer_count == 0) return;
     if (hd_canvas != NULL) {
         SDL_DestroyTexture(hd_canvas);
         hd_canvas = NULL;
     }
-    SDL_Surface* hd_surface = IMG_Load(last_hd_path);
-    if (hd_surface != NULL) {
-        hd_canvas = SDL_CreateTexture(gfx.renderer, SDL_PIXELFORMAT_RGBA8888,
-            SDL_TEXTUREACCESS_TARGET, 1920, 1200);
-        SDL_SetTextureBlendMode(hd_canvas, SDL_BLENDMODE_BLEND);
-        SDL_Texture* temp_tex = SDL_CreateTextureFromSurface(gfx.renderer, hd_surface);
-        SDL_FreeSurface(hd_surface);
-        SDL_SetRenderTarget(gfx.renderer, hd_canvas);
-        SDL_RenderClear(gfx.renderer);
-        SDL_RenderCopy(gfx.renderer, temp_tex, NULL, &last_hd_dest_rect);
-        SDL_SetRenderTarget(gfx.renderer, NULL);
-        SDL_DestroyTexture(temp_tex);
+    hd_canvas = SDL_CreateTexture(gfx.renderer, SDL_PIXELFORMAT_RGBA8888,
+        SDL_TEXTUREACCESS_TARGET, 1920, 1200);
+    SDL_SetTextureBlendMode(hd_canvas, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderTarget(gfx.renderer, hd_canvas);
+    SDL_SetRenderDrawColor(gfx.renderer, 0, 0, 0, 255);
+    SDL_RenderClear(gfx.renderer);
+    for (int i = 0; i < hd_layer_count; i++) {
+        SDL_Surface *surf = IMG_Load(hd_layers[i].path);
+        if (surf != NULL) {
+            SDL_Texture *tex = SDL_CreateTextureFromSurface(gfx.renderer, surf);
+            SDL_FreeSurface(surf);
+            SDL_RenderCopy(gfx.renderer, tex, NULL, &hd_layers[i].dest_rect);
+            SDL_DestroyTexture(tex);
+        }
     }
+    SDL_SetRenderTarget(gfx.renderer, NULL);
 }
 
-/// @param  
+///something 
 void gfx_window_increase_integer_size(void)
 {
 	int w, h;
@@ -1420,52 +1425,57 @@ void gfx_draw_cg(unsigned i, struct cg *cg)
 			
 // --- HD OVERRIDE START ---
 if (strlen(current_loading_filename) > 0) {
-char base_name [ 256 ];
-strncpy(base_name, current_loading_filename, 255);
-base_name [ 255 ] = '\0';
-char *dot = strrchr(base_name, '.');
-if (dot != NULL) { *dot = '\0'; }
+    char base_name[256];
+    strncpy(base_name, current_loading_filename, 255);
+    base_name[255] = '\0';
+    char *dot = strrchr(base_name, '.');
+    if (dot != NULL) *dot = '\0';
 
-char hd_path [ 512 ];
-snprintf(hd_path, sizeof(hd_path), "hd_assets/%s.png", base_name);
+    char hd_path[512];
+    snprintf(hd_path, sizeof(hd_path), "hd_assets/%s.png", base_name);
 
-if (access(hd_path, F_OK) == 0) {
-    SDL_Surface* hd_surface = IMG_Load(hd_path);
-    if (hd_surface != NULL) {
-        strncpy(last_hd_path, hd_path, 511);
-        last_hd_dest_rect = (SDL_Rect){ cg->metrics.x * 3, cg->metrics.y * 3, cg->metrics.w * 3, cg->metrics.h * 3 };
-        if (hd_canvas == NULL) {
-            hd_canvas = SDL_CreateTexture(gfx.renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 1920, 1200);
-            SDL_SetTextureBlendMode(hd_canvas, SDL_BLENDMODE_BLEND);
+    if (access(hd_path, F_OK) == 0) {
+        SDL_Surface *hd_surface = IMG_Load(hd_path);
+        if (hd_surface != NULL) {
+            SDL_Rect dest_rect = {
+                cg->metrics.x * 3,
+                cg->metrics.y * 3,
+                cg->metrics.w * 3,
+                cg->metrics.h * 3
+            };
+
+            // store layer for reload on window events
+            if (hd_layer_count < HD_LAYER_MAX) {
+                strncpy(hd_layers[hd_layer_count].path, hd_path, 511);
+                hd_layers[hd_layer_count].dest_rect = dest_rect;
+                hd_layer_count++;
+            }
+
+            if (hd_canvas == NULL) {
+                hd_canvas = SDL_CreateTexture(gfx.renderer, SDL_PIXELFORMAT_RGBA8888,
+                    SDL_TEXTUREACCESS_TARGET, 1920, 1200);
+                SDL_SetTextureBlendMode(hd_canvas, SDL_BLENDMODE_BLEND);
+            }
+
+            SDL_Texture *temp_tex = SDL_CreateTextureFromSurface(gfx.renderer, hd_surface);
+            SDL_FreeSurface(hd_surface);
+
+            SDL_SetRenderTarget(gfx.renderer, hd_canvas);
+            SDL_RenderCopy(gfx.renderer, temp_tex, NULL, &dest_rect);
+            SDL_SetRenderTarget(gfx.renderer, NULL);
+            SDL_DestroyTexture(temp_tex);
+
+            SDL_Surface *s = gfx_get_surface(i);
+            SDL_Rect fill_rect = { cg->metrics.x, cg->metrics.y, cg->metrics.w, cg->metrics.h };
+            SDL_FillRect(s, &fill_rect, 0);
+            gfx_dirty(i, cg->metrics.x, cg->metrics.y, cg->metrics.w, cg->metrics.h);
+
+            current_loading_filename[0] = '\0';
+            return;
         }
-        
-        SDL_Texture* temp_tex = SDL_CreateTextureFromSurface(gfx.renderer, hd_surface);
-        SDL_FreeSurface(hd_surface);
-        
-        SDL_SetRenderTarget(gfx.renderer, hd_canvas);
-        
-        if (cg->metrics.w == 640 && cg->metrics.h == 400) {
-            SDL_SetRenderDrawColor(gfx.renderer, 0, 0, 0, 255);
-            SDL_RenderClear(gfx.renderer);
-        }
-        
-        SDL_Rect dest_rect = { cg->metrics.x * 3, cg->metrics.y * 3, cg->metrics.w * 3, cg->metrics.h * 3 };
-        SDL_RenderCopy(gfx.renderer, temp_tex, NULL, &dest_rect);
-        
-        SDL_SetRenderTarget(gfx.renderer, NULL);
-        SDL_DestroyTexture(temp_tex);
-        
-        SDL_Surface *s = gfx_get_surface(i);
-        SDL_Rect fill_rect = { cg->metrics.x, cg->metrics.y, cg->metrics.w, cg->metrics.h };
-        SDL_FillRect(s, &fill_rect, 0); 
-        gfx_dirty(i, cg->metrics.x, cg->metrics.y, cg->metrics.w, cg->metrics.h);
-        
-        current_loading_filename [ 0 ] = '\0';
-        return; 
     }
 }
-}
-current_loading_filename [ 0 ] = '\0';
+current_loading_filename[0] = '\0';
 // --- HD OVERRIDE END ---
 
 

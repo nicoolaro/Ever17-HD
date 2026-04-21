@@ -40,6 +40,7 @@ So to summarize where we are:
 ✅ F11 fullscreen working
 ✅ HD canvas context loss fixed
 🔲 Popup menu transparency
+
 🔲 Left/right UI zone black borders
 
 ## Next steps
