@@ -49,7 +49,7 @@ void gfx_window_toggle_fullscreen(void);
 void gfx_window_increase_integer_size(void);
 void gfx_window_decrease_integer_size(void);
 void gfx_screenshot(void);
-
+void gfx_reload_hd_canvas(void);  // ← ADD THIS
 // display operations
 void gfx_display_hide(uint32_t color);
 void gfx_display_unhide(void);
