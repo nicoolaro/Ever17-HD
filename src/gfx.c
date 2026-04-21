@@ -183,7 +183,7 @@ SDL_Surface *gfx_get_overlay(void)
 }
 
 //fixed issue with minimized 1cm screen andblack screen on f11
-void gfx_window_toggle_fullscreen(void)
+vvoid gfx_window_toggle_fullscreen(void)
 {
     uint32_t flag = SDL_WINDOW_FULLSCREEN_DESKTOP;
     bool fullscreen = SDL_GetWindowFlags(gfx.window) & flag;
@@ -202,22 +202,7 @@ void gfx_window_toggle_fullscreen(void)
         SDL_SetWindowFullscreen(gfx.window, flag);
     }
 
-    if (strlen(last_hd_path) > 0) {
-        SDL_Surface* hd_surface = IMG_Load(last_hd_path);
-        if (hd_surface != NULL) {
-            hd_canvas = SDL_CreateTexture(gfx.renderer, SDL_PIXELFORMAT_RGBA8888,
-                SDL_TEXTUREACCESS_TARGET, 1920, 1200);
-            SDL_SetTextureBlendMode(hd_canvas, SDL_BLENDMODE_BLEND);
-            SDL_Texture* temp_tex = SDL_CreateTextureFromSurface(gfx.renderer, hd_surface);
-            SDL_FreeSurface(hd_surface);
-            SDL_SetRenderTarget(gfx.renderer, hd_canvas);
-            SDL_RenderClear(gfx.renderer);
-            SDL_RenderCopy(gfx.renderer, temp_tex, NULL, &last_hd_dest_rect);
-            SDL_SetRenderTarget(gfx.renderer, NULL);
-            SDL_DestroyTexture(temp_tex);
-        }
-    }
-
+    gfx_reload_hd_canvas();
     gfx_screen_dirty();
 }
 
@@ -1285,9 +1270,9 @@ static void gfx_direct_fill(int x, int y, int w, int h, SDL_Surface *dst, uint32
 
 void gfx_fill(int x, int y, int w, int h, unsigned i, uint32_t c)
 {
-if (w >= 500 && h >= 300) {
-wipe_hd_canvas();
-}
+    if (w >= 500 && h >= 300) {
+        wipe_hd_canvas();
+    }
 
     // ... keep the rest of the original function code here ...
 
